@@ -1,0 +1,14 @@
+body {
+  background: #f4f6f9;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  transition: 0.2s;
+}
