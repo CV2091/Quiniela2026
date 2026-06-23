@@ -189,21 +189,38 @@ function App() {
     const { data: participantes } = await supabase
       .from('participantes')
       .select('*')
+const tablaLider = participantes.map(p => {
 
-    let lider = ''
-    let liderPuntos = -1
+  const registros = historialData.filter(
+    h => h.participante_id === p.id
+  )
 
-    participantes.forEach(p => {
-      const puntos = historialData
-        .filter(h => h.participante_id === p.id)
-        .reduce((a, b) => a + b.puntos, 0)
+  return {
+    nombre: p.nombre,
+    puntos: registros.reduce(
+      (a, b) => a + b.puntos,
+      0
+    ),
+    dg: registros.reduce(
+      (a, b) => a + b.diferencia_goles,
+      0
+    )
+  }
 
-      if (puntos > liderPuntos) {
-        liderPuntos = puntos
-        lider = p.nombre
-      }
-    })
+})
 
+tablaLider.sort((a, b) => {
+
+  if (b.puntos !== a.puntos) {
+    return b.puntos - a.puntos
+  }
+
+  return b.dg - a.dg
+
+})
+
+const lider = tablaLider[0].nombre
+    
     const dgPorEquipo = {}
     historialData.forEach(h => {
       if (!dgPorEquipo[h.equipo]) dgPorEquipo[h.equipo] = 0
