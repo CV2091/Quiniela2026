@@ -685,8 +685,27 @@ const opcionesGrafica = {
 
 <div className="mb-3">
 
+  <button
+  className="btn btn-sm btn-danger me-2"
+  onClick={() => setParticipantesSeleccionados([])}
+>
+  Limpiar Todo
+</button>
+
+<button
+  className="btn btn-sm btn-success me-3"
+  onClick={() =>
+    setParticipantesSeleccionados(
+      participantesGrafica
+    )
+  }
+>
+  Mostrar Todos
+</button>
+
   {participantesGrafica.map(nombre => (
 
+  
     <div
       key={nombre}
       className="form-check form-check-inline"
