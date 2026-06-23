@@ -459,7 +459,7 @@ function App() {
             <div key={p.id} className="card shadow border-0 mb-3">
               <div className="card-body">
                 <div className="text-muted mb-2">
-                  📅 {new Date(p.fecha).toLocaleDateString('es-MX')}
+                  📅 {p.fecha.split('-').reverse().join('/')}
                   {' • '}
                   Grupo {p.grupo}
                 </div>
