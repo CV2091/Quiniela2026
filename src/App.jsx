@@ -102,6 +102,21 @@ function App() {
     partidosCapturados: 0
   })
   const [historialPosiciones, setHistorialPosiciones] = useState([])
+  const [posicionesPorDia, setPosicionesPorDia] = useState([])
+  const [participantesSeleccionados, setParticipantesSeleccionados] = useState([
+  'Roger',
+  'Aarón',
+  'César',
+  'Javier',
+  'Misael',
+  'Marek',
+  'Costal',
+  'Archy',
+  'Víctor',
+  'Erick',
+  'Guille',
+  'Aurelio'
+])
 
   async function cargarRanking() {
     const { data } = await supabase
@@ -233,6 +248,77 @@ function App() {
 
    async function cargarHistorialPosiciones() {
 
+  const { data: historialData } = await supabase
+    .from('puntos_historial')
+    .select('*')
+
+  const { data: participantes } = await supabase
+    .from('participantes')
+    .select('*')
+
+  const { data: partidos } = await supabase
+    .from('partidos')
+    .select('*')
+    .eq('procesado', true)
+    .order('fecha')
+
+  const fechas = [...new Set(partidos.map(p => p.fecha))]
+
+  const resultado = []
+
+  for (const fecha of fechas) {
+
+    const partidosHastaFecha = partidos.filter(
+      p => p.fecha <= fecha
+    )
+
+    const idsPartidos = partidosHastaFecha.map(
+      p => p.numero_partido
+    )
+
+    const registros = historialData.filter(
+      h => idsPartidos.includes(h.partido_id)
+    )
+
+    const tabla = participantes.map(p => {
+
+      const misRegistros = registros.filter(
+        r => r.participante_id === p.id
+      )
+
+      return {
+        nombre: p.nombre,
+        puntos: misRegistros.reduce(
+          (a, b) => a + b.puntos,
+          0
+        ),
+        dg: misRegistros.reduce(
+          (a, b) => a + b.diferencia_goles,
+          0
+        )
+      }
+    })
+
+    tabla.sort((a, b) => {
+      if (b.puntos !== a.puntos) {
+        return b.puntos - a.puntos
+      }
+      return b.dg - a.dg
+    })
+
+    const fila = {
+      fecha
+    }
+
+    tabla.forEach((t, index) => {
+      fila[t.nombre] = index + 1
+    })
+
+    resultado.push(fila)
+  }
+
+  setPosicionesPorDia(resultado)
+
     const { data, error } = await supabase
       .from('puntos_historial')
       .select('*')
@@ -283,6 +369,110 @@ function App() {
     cargarHistorialPosiciones()
   }, [])
 
+const etiquetasGrafica = posicionesPorDia.map(p =>
+  p.fecha.split('-').reverse().join('/')
+)
+
+const participantesGrafica = [
+  'Roger',
+  'Aarón',
+  'César',
+  'Javier',
+  'Misael',
+  'Marek',
+  'Costal',
+  'Archy',
+  'Víctor',
+  'Erick',
+  'Guille',
+  'Aurelio'
+]
+
+const colores = {
+  Roger: '#22c55e',
+  Aarón: '#f59e0b',
+  César: '#a855f7',
+  Javier: '#ef4444',
+  Misael: '#3b82f6',
+  Marek: '#06b6d4',
+  Costal: '#1e3a8a',
+  Archy: '#ec4899',
+  Víctor: '#92400e',
+  Erick: '#eab308',
+  Guille: '#6b7280',
+  Aurelio: '#84cc16'
+}
+
+const datosGrafica = {
+  labels: etiquetasGrafica,
+  datasets: participantesGrafica
+  .filter(nombre =>
+    participantesSeleccionados.includes(nombre)
+  )
+  .map(nombre => ({
+    label: nombre,
+    data: posicionesPorDia.map(p => p[nombre]),
+
+    borderColor: colores[nombre],
+    backgroundColor: colores[nombre],
+
+    borderWidth: 2,
+
+    tension: 0,
+
+    pointRadius: 5,
+    pointHoverRadius: 7,
+
+    pointStyle: 'rectRot',
+
+    fill: false
+  }))
+}
+
+const opcionesGrafica = {
+  responsive: true,
+  maintainAspectRatio: false,
+
+  plugins: {
+    legend: {
+      position: 'bottom',
+      labels: {
+        usePointStyle: true,
+        padding: 20,
+        font: {
+          size: 12
+        }
+      }
+    }
+  },
+
+  scales: {
+    x: {
+      grid: {
+        display: false
+      }
+    },
+
+    y: {
+      reverse: true,
+      min: 1,
+      max: 12,
+
+      ticks: {
+        stepSize: 1,
+        font: {
+          size: 12
+        }
+      },
+
+      title: {
+        display: true,
+        text: 'Posición'
+      }
+    }
+  }
+}
+  
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', margin: 'auto', fontFamily: 'Arial' }}>
 
@@ -489,6 +679,64 @@ function App() {
               </div>
             </div>
           </div>
+          <div className="card shadow mt-4">
+  <div className="card-body">
+    <h4>📈 Evolución del Ranking</h4>
+
+<div className="mb-3">
+
+  {participantesGrafica.map(nombre => (
+
+    <div
+      key={nombre}
+      className="form-check form-check-inline"
+    >
+
+      <input
+        className="form-check-input"
+        type="checkbox"
+        checked={participantesSeleccionados.includes(nombre)}
+        onChange={(e) => {
+
+          if (e.target.checked) {
+
+            setParticipantesSeleccionados([
+              ...participantesSeleccionados,
+              nombre
+            ])
+
+          } else {
+
+            setParticipantesSeleccionados(
+              participantesSeleccionados.filter(
+                p => p !== nombre
+              )
+            )
+
+          }
+
+        }}
+      />
+
+      <label className="form-check-label">
+        {nombre}
+      </label>
+
+    </div>
+
+  ))}
+
+</div>
+
+   <div style={{ height: '700px' }}>
+  <Line
+    data={datosGrafica}
+    options={opcionesGrafica}
+  />
+</div>
+
+  </div>
+</div>
         </div>
       )}
 
