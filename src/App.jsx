@@ -1,5 +1,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js'
+
+import { Line } from 'react-chartjs-2'
 
 const banderas = {
   Alemania: 'de',
@@ -65,6 +77,16 @@ function renderBandera(nombre) {
   )
 }
 
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+)
+
 function App() {
   const [tab, setTab] = useState('ranking')
   const [ranking, setRanking] = useState([])
@@ -79,6 +101,7 @@ function App() {
     goles: 0,
     partidosCapturados: 0
   })
+  const [historialPosiciones, setHistorialPosiciones] = useState([])
 
   async function cargarRanking() {
     const { data } = await supabase
@@ -208,6 +231,22 @@ function App() {
     })
   }
 
+   async function cargarHistorialPosiciones() {
+
+    const { data, error } = await supabase
+      .from('puntos_historial')
+      .select('*')
+      .order('partido_id')
+
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    setHistorialPosiciones(data)
+
+  }
+
   async function guardarResultado(id, golesLocal, golesVisitante) {
     if (golesLocal === '' || golesVisitante === '') {
       alert('Captura ambos marcadores')
@@ -241,6 +280,7 @@ function App() {
     cargarEquipos()
     cargarEstadisticas()
     cargarHistorial()
+    cargarHistorialPosiciones()
   }, [])
 
   return (
