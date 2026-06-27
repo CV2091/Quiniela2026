@@ -103,6 +103,8 @@ function App() {
   })
   const [historialPosiciones, setHistorialPosiciones] = useState([])
   const [posicionesPorDia, setPosicionesPorDia] = useState([])
+  const [ganadoresPenales, setGanadoresPenales] = useState({})
+  const [huboPenales, setHuboPenales] = useState({})
   const [participantesSeleccionados, setParticipantesSeleccionados] = useState([
   'Roger',
   'Aarón',
@@ -356,12 +358,20 @@ const lider = tablaLider[0].nombre
       return
     }
 
+    if (huboPenales[id] && !ganadoresPenales[id]) {
+  alert('Selecciona el ganador en penales')
+  return
+}
+
     const { error } = await supabase
       .from('partidos')
-      .update({
-        goles_local: Number(golesLocal),
-        goles_visitante: Number(golesVisitante)
-      })
+    .update({
+  goles_local: Number(golesLocal),
+  goles_visitante: Number(golesVisitante),
+  ganador_penales: huboPenales[id]
+    ? ganadoresPenales[id]
+    : null
+})
       .eq('id', id)
 
     if (error) {
@@ -637,6 +647,102 @@ const opcionesGrafica = {
                     style={{ width: '90px', border: '2px solid #000', fontSize: '22px', fontWeight: 'bold' }}
                   />
                 </div>
+
+                {p.fase === 'Eliminación' && (
+  <div className="mt-3">
+
+    <h6 className="text-center mb-2">
+      ¿Se definió por penales?
+    </h6>
+
+    <div className="text-center">
+
+      <div className="form-check form-check-inline">
+        <input
+          className="form-check-input"
+          type="radio"
+          name={`penales-si-no-${p.id}`}
+          checked={huboPenales[p.id] === false}
+          onChange={() =>
+            setHuboPenales({
+              ...huboPenales,
+              [p.id]: false
+            })
+          }
+        />
+        <label className="form-check-label">
+          No
+        </label>
+      </div>
+
+      <div className="form-check form-check-inline">
+        <input
+          className="form-check-input"
+          type="radio"
+          name={`penales-si-no-${p.id}`}
+          checked={huboPenales[p.id] === true}
+          onChange={() =>
+            setHuboPenales({
+              ...huboPenales,
+              [p.id]: true
+            })
+          }
+        />
+        <label className="form-check-label">
+          Sí
+        </label>
+      </div>
+
+    </div>
+
+    {huboPenales[p.id] === true && (
+
+      <div className="mt-3 text-center">
+
+        <h6>¿Quién avanzó?</h6>
+
+        <div className="form-check form-check-inline">
+          <input
+            className="form-check-input"
+            type="radio"
+            name={`ganador-${p.id}`}
+            checked={ganadoresPenales[p.id] === p.local}
+            onChange={() =>
+              setGanadoresPenales({
+                ...ganadoresPenales,
+                [p.id]: p.local
+              })
+            }
+          />
+          <label className="form-check-label">
+            {p.local}
+          </label>
+        </div>
+
+        <div className="form-check form-check-inline">
+          <input
+            className="form-check-input"
+            type="radio"
+            name={`ganador-${p.id}`}
+            checked={ganadoresPenales[p.id] === p.visitante}
+            onChange={() =>
+              setGanadoresPenales({
+                ...ganadoresPenales,
+                [p.id]: p.visitante
+              })
+            }
+          />
+          <label className="form-check-label">
+            {p.visitante}
+          </label>
+        </div>
+
+      </div>
+
+    )}
+
+  </div>
+)}
                 <div className="text-center mt-4">
                   <button
                     className="btn btn-success btn-lg shadow"
