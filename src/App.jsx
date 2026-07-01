@@ -157,16 +157,65 @@ function App() {
   }
 
   async function cargarEquipos() {
-    const { data } = await supabase
-      .from('equipos')
-      .select(`
-        nombre,
-        participante_id,
-        participantes(nombre)
-      `)
 
-    setEquipos(data)
+  const { data: equiposData } = await supabase
+    .from('equipos')
+    .select(`
+      nombre,
+      participante_id,
+      participantes(nombre)
+    `)
+
+  const { data: partidosData } = await supabase
+    .from('partidos')
+    .select('fase,local,visitante,goles_local,goles_visitante,ganador_penales,procesado')
+
+  const equiposEnEliminacion = new Set()
+
+partidosData
+  .filter(p => p.fase === 'Eliminación')
+  .forEach(p => {
+    equiposEnEliminacion.add(p.local)
+    equiposEnEliminacion.add(p.visitante)
+  })
+
+const eliminados = new Set()
+
+equiposData.forEach(e => {
+  if (!equiposEnEliminacion.has(e.nombre)) {
+    eliminados.add(e.nombre)
   }
+})
+
+partidosData
+  .filter(p => p.fase === 'Eliminación' && p.procesado)
+  .forEach(p => {
+
+    if (p.goles_local > p.goles_visitante) {
+      eliminados.add(p.visitante)
+    }
+    else if (p.goles_local < p.goles_visitante) {
+      eliminados.add(p.local)
+    }
+    else {
+
+      if (p.ganador_penales === p.local)
+        eliminados.add(p.visitante)
+
+      if (p.ganador_penales === p.visitante)
+        eliminados.add(p.local)
+
+    }
+
+  })
+  const equipos = equiposData.map(e => ({
+    ...e,
+    eliminado: eliminados.has(e.nombre)
+  }))
+
+  setEquipos(equipos)
+
+}
 
   async function cargarHistorial() {
     const { data } = await supabase
@@ -581,6 +630,9 @@ const opcionesGrafica = {
                 </thead>
                 <tbody>
                   {ranking.map((r, index) => {
+                    const sigueVivo = equipos
+  .filter(e => e.participantes.nombre === r.nombre)
+  .some(e => !e.eliminado)
                     let medalla = ''
                     if (index === 0) medalla = '🥇'
                     if (index === 1) medalla = '🥈'
@@ -588,7 +640,18 @@ const opcionesGrafica = {
                     return (
                       <tr key={index}>
                         <td>{medalla || index + 1}</td>
-                        <td>{r.nombre}</td>
+                       <td
+  style={{
+    color: sigueVivo ? '#212529' : '#9ca3af',
+    textDecoration: sigueVivo ? 'none' : 'line-through',
+    textDecorationColor: sigueVivo ? 'transparent' : '#dc3545',
+    textDecorationThickness: sigueVivo ? '0px' : '1px',
+    fontWeight: sigueVivo ? '600' : '500',
+    transition: 'all .3s ease'
+  }}
+>
+  {r.nombre}
+</td>
                         <td>
                           <span className="badge bg-primary fs-6">{r.puntos}</span>
                         </td>
@@ -916,33 +979,59 @@ const opcionesGrafica = {
         <div>
           <h2 className="mb-4">📋 Equipos por Participante</h2>
           <div className="row">
-            {[...new Set(equipos.map(e => e.participantes.nombre))].map(nombre => (
+            {[...new Set(equipos.map(e => e.participantes.nombre))].map(nombre => {
+
+  const sigueVivo = equipos
+    .filter(e => e.participantes.nombre === nombre)
+    .some(e => !e.eliminado)
+
+  return (
               <div key={nombre} className="col-md-4 mb-4">
                 <div className="card shadow h-100">
                   <div className="card-body">
-                    <h3 className="text-center mb-3 fw-bold">👤 {nombre}</h3>
+                  <h3  className="text-center mb-3 fw-bold"
+                    style={{
+  color: sigueVivo ? '#212529' : '#9ca3af',
+  textDecoration: sigueVivo ? 'none' : 'line-through',
+  textDecorationColor: sigueVivo ? 'transparent' : '#dc3545',
+  textDecorationThickness: sigueVivo ? '0px' : '1.5px',
+  transition: 'all .3s ease'
+}}
+>
+  👤 {nombre}
+</h3>               
+          
                     {equipos
                       .filter(e => e.participantes.nombre === nombre)
                       .map(e => (
                         <div
-                          key={e.nombre}
-                          className="d-flex align-items-center mb-2 p-2 rounded bg-light border"
-                        >
-                          {renderBandera(e.nombre)}
-                          {e.nombre}
-                        </div>
+  key={e.nombre}
+  className="d-flex align-items-center mb-2 p-2 rounded border"
+  style={{
+    backgroundColor: e.eliminado ? '#f3f4f6' : '#ffffff',
+    color: e.eliminado ? '#9ca3af' : '#212529',
+    textDecoration: e.eliminado ? 'line-through' : 'none',
+    opacity: e.eliminado ? 0.65 : 1,
+    transition: 'all .3s ease'
+  }}
+>
+  {renderBandera(e.nombre)}
+  <span>{e.nombre}</span>
+</div>
                       ))
                     }
                   </div>
                 </div>
               </div>
-            ))}
+  )
+            })}
+
           </div>
         </div>
       )}
 
     </div>
-  )
+    )
 }
 
 export default App
